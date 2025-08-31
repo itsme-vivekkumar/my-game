@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pseudo-3D Car Racing — Single HTML</title>
+  <meta name="description" content="A feature-rich pseudo-3D car racing game in a single HTML file. No external libs.">
+  <style>
+    /* -----------------------------
+       Layout + Visuals
+       ----------------------------- */
+    :root{
+      --bg:#0b0f14; --panel:#0f1720; --accent:#00d4ff; --muted:#97a3ad;
+      --road-w:520px; --road-h:720px; --ui-w:280px;
+    }
+    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;background:linear-gradient(180deg,#021018 0%, #07121a 70%);} 
+    .stage{min-height:100%;display:flex;gap:20px;align-items:center;justify-content:center;padding:28px}
+    .game-wrap{display:flex;gap:18px;align-items:flex-start}
+
+    /* Game canvas area */
+    .viewport{width:var(--road-w);height:var(--road-h);border-radius:14px;overflow:hidden;position:relative;background:linear-gradient(#1b2430,#061218 60%);box-shadow:0 20px 60px rgba(2,6,10,.8), inset 0 1px 0 rgba(255,255,255,0.02)}
+    canvas{display:block;width:100%;height:100%;background:transparent}
+
+    /* Control overlay and UI */
+    .ui{width:var(--ui-w);color:#eaf6ff;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));border-radius:12px;padding:16px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 8px 30px rgba(3,8,12,.6)}
+    h1{font-size:18px;margin:0 0 8px;color:var(--accent)}
+    .row{display:flex;justify-content:space-between;align-items:center;margin:8px 0}
+    .stat{font-weight:700;font-size:18px}
+    .muted{color:var(--muted);font-size:12px}
+    .btn{display:inline-block;padding:8px 12px;border-radius:8px;background:linear-gradient(90deg,#00d4ff,#2998ff);color:#04161b;border:none;cursor:pointer;font-weight:800}
+    .hint{font-size:12px;color:var(--muted);margin-top:6px}
+
+    /* small accessibility helper */
+    .kbd{background:rgba(255,255,255,0.06);padding:4px 6px;border-radius:6px;font-weight:700;font-size:12px}
+
+    /* Mobile controls */
+    .pads{display:none}
+    @media (max-width:980px){
+      .stage{padding:10px}
+      .ui{display:none}
+      .pads{display:flex;gap:18px;position:fixed;left:50%;transform:translateX(-50%);bottom:14px}
+      .pad{width:96px;height:64px;border-radius:10px;background:rgba(255,255,255,0.04);display:grid;place-items:center;font-size:24px;color:#fff}
+    }
+
+    /* decorative footer */
+    .credit{font-size:12px;color:var(--muted);margin-top:12px}
+
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="game-wrap">
+      <div class="viewport" role="application" aria-label="Pseudo 3D Racing View">
+        <canvas id="gameCanvas" width="520" height="720" aria-hidden="false"></canvas>
+        <!-- overlays (start / pause / messages) -->
+        <div id="overlay" style="position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;">
+          <div id="message" style="pointer-events:auto;background:linear-gradient(180deg, rgba(3,6,10,0.7), rgba(3,6,10,0.9));padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);display:none;">
+            <div id="msgTitle" style="color:var(--accent);font-weight:800;font-size:18px;margin-bottom:6px">Ready?</div>
+            <div id="msgBody" style="color:var(--muted);font-size:13px;">Use A/D or ←/→ to steer. Space to start. Power-ups: Boost & Shield.</div>
+            <div style="display:flex;gap:8px;margin-top:12px;justify-content:center"><button id="startBtn" class="btn">Start</button><button id="resumeBtn" class="btn" style="display:none">Resume</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ui" role="region" aria-label="game controls and info">
+        <h1>Pseudo-3D Racer</h1>
+        <div class="row"><div class="muted">Speed</div><div id="speed" class="stat">0</div></div>
+        <div class="row"><div class="muted">Score</div><div id="score" class="stat">0</div></div>
+        <div class="row"><div class="muted">Best</div><div id="best" class="stat">0</div></div>
+        <div class="row"><div class="muted">Shield</div><div id="shieldState" class="stat">—</div></div>
+        <div style="height:10px"></div>
+        <div style="display:flex;gap:8px"><button id="pauseBtn" class="btn">Pause</button><button id="resetBtn" class="btn">Restart</button></div>
+        <div class="hint">Controls: <span class="kbd">A</span>/<span class="kbd">D</span> or <span class="kbd">←</span>/<span class="kbd">→</span>. <span class="kbd">Space</span> to start.</div>
+        <div class="credit">Features: pseudo-3D perspective, roadside objects, power-ups (boost/shield), particles & milestone effects.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pads" aria-hidden="true">
+    <div class="pad" id="padLeft">◀</div>
+    <div class="pad" id="padRight">▶</div>
+  </div>
+
+  <script>
+  /* ======================================================
+     PSEUDO-3D RACING GAME
+     Single-file, no external libraries. Focused on visuals.
+     ======================================================
+  */
+
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+
+  // UI elements
+  const overlay = document.getElementById('overlay');
+  const message = document.getElementById('message');
+  const startBtn = document.getElementById('startBtn');
+  const resumeBtn = document.getElementById('resumeBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const scoreEl = document.getElementById('score');
+  const speedEl = document.getElementById('speed');
+  const bestEl = document.getElementById('best');
+  const shieldStateEl = document.getElementById('shieldState');
+
+  // Mobile pads
+  const padLeft = document.getElementById('padLeft');
+  const padRight = document.getElementById('padRight');
+
+  // Game state
+  const state = {
+    running: false,
+    paused: false,
+    t0: 0,
+    score: 0,
+    best: +(localStorage.getItem('p3d-best') || 0),
+    laneCount: 5,
+    lanes: [],
+    player: { lane: 2, x:0, y: H - 140, baseW: 60, baseH: 110, targetX:0, speed:0.15, color:'#2ad6ff', shield:false },
+    enemies: [],
+    roadside: [],
+    powerups: [],
+    particles: [],
+    speed: 6, // pseudo-3d forward speed determines scaling
+    spawnTimer: 0,
+    spawnInterval: 900,
+    milestoneFlash: 0
+  };
+
+  bestEl.textContent = state.best;
+
+  // LANE SETUP - lanes are x positions in screen space (camera plane)
+  function setupLanes(){
+    const roadLeft = 60, roadRight = W - 60;
+    state.lanes = [];
+    const laneCount = state.laneCount;
+    for(let i=0;i<laneCount;i++){
+      const t = i / (laneCount - 1);
+      // place equally but keep inner padding
+      state.lanes.push(roadLeft + t * (roadRight - roadLeft));
+    }
+  }
+  setupLanes();
+
+  // Camera perspective helpers — map worldZ (depth) to screen Y and scale
+  function projectZ(z){
+    // z: depth 0..∞ ; small z -> bottom (near), large z -> top (far)
+    // choose perspective constants to taste
+    const horizon = 0.18 * H;
+    const fov = 1200; // larger fov -> stronger perspective
+    const y = horizon + (H - horizon) * (1 / (1 + z / 600));
+    const scale = fov / (fov + z);
+    return { y, scale };
+  }
+
+  // Draw rounded rectangle helper
+  function roundRect(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  // Draw player car with pseudo-3D shading and perspective scaling based on 'z' (we keep player at z~0)
+  function drawCarAt(x,y,w,h,color,flip=false,extra){
+    // base body
+    ctx.save();
+    ctx.translate(x,y);
+    if(flip) ctx.scale(-1,1);
+    // body gradient
+    const g = ctx.createLinearGradient(0,0,0,h);
+    g.addColorStop(0,'#ffffff22');
+    g.addColorStop(0.2,color);
+    g.addColorStop(1,'#000000');
+    roundRect(-w/2,-h/2,w,h,Math.min(12,w/6));
+    ctx.fillStyle = g;ctx.fill();
+    // windows
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    roundRect(-w/4,-h/4,w/2,h/5,4);ctx.fill();
+    // headlights if extra
+    if(extra && extra.headlights){
+      ctx.fillStyle = 'rgba(255,255,200,0.85)';
+      ctx.fillRect(-w/2+6,h/6,8,6);ctx.fillRect(w/2-14,h/6,8,6);
+    }
+
+    // glow
+    ctx.shadowColor = color; ctx.shadowBlur = 20; ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    roundRect(-w/2,-h/2,w,h,Math.min(12,w/6));ctx.fill();
+    ctx.restore();
+  }
+
+  // Spawn enemies with depth (z) and lane; enemies move toward camera by decreasing z
+  function spawnEnemy(){
+    const lane = Math.floor(Math.random()*state.laneCount);
+    const z = 1400 + Math.random()*800; // spawn far, z decreases
+    const typeRoll = Math.random();
+    const enemy = {
+      lane, z,
+      speed: 6 + Math.random()*5, // z-decrement per tick
+      w: 58, h: 100,
+      color: typeRoll>0.85? '#ffd166' : (typeRoll>0.55? '#ff6b6b' : '#a57cff'),
+      id: Math.random().toString(36).slice(2,8)
+    };
+    state.enemies.push(enemy);
+  }
+
+  // Roadside objects (trees, lamp posts) for parallax
+  function spawnRoadside(){
+    const side = Math.random()>0.5? 'left':'right';
+    const z = 200 + Math.random()*1600;
+    const obj = {side,z,type: Math.random()>0.5? 'tree':'lamp',model:Math.random()};
+    state.roadside.push(obj);
+  }
+
+  // Powerups
+  function spawnPowerup(){
+    const lane = Math.floor(Math.random()*state.laneCount);
+    const z = 1200 + Math.random()*1000;
+    const type = Math.random()>0.5? 'boost':'shield';
+    state.powerups.push({lane,z,type,angle:0});
+  }
+
+  // Particles for effects
+  function createParticles(x,y,color,count,spread){
+    for(let i=0;i<count;i++){
+      state.particles.push({x:x + (Math.random()-0.5)*spread, y:y + (Math.random()-0.5)*spread, vx:(Math.random()-0.5)*2, vy:(Math.random()-0.5)*2 -1, life:30, color});
+    }
+  }
+
+  // Convert lane + z to screen x,y and scale
+  function laneZToScreen(lane,z){
+    const laneX = state.lanes[lane];
+    const p = projectZ(z);
+    const x = laneX; // base x; later we offset by perspective
+    const y = p.y;
+    const s = p.scale;
+    // Apply a simple perspective offset: lanes squeeze toward center as z increases
+    const center = W/2;
+    const dx = (x - center) * s + center; // compress to center
+    return {x: dx, y, scale:s};
+  }
+
+  // Simple collision detection in screen space using projected rectangles
+  function collideEnemyPlayer(enemy){
+    const pe = laneZToScreen(enemy.lane, enemy.z);
+    const es = enemy.w * pe.scale * 0.9;
+    const eh = enemy.h * pe.scale * 0.9;
+    const ex = pe.x;
+    const ey = pe.y;
+    // player projection (player close to camera => use small z~40 for projection)
+    const pp = projectZ(40);
+    const pw = state.player.baseW * pp.scale * 0.95;
+    const ph = state.player.baseH * pp.scale * 0.95;
+    const px = state.player.x;
+    const py = state.player.y;
+    // rect overlap
+    if(Math.abs(ex - px) < (es/2 + pw/2 - 6) && Math.abs(ey - py) < (eh/2 + ph/2 - 6)) return true;
+    return false;
+  }
+
+  // draw road with perspective bands and center dashed line
+  function drawRoad(){
+    // road edges
+    ctx.save();
+    const roadLeft = 60, roadRight = W - 60;
+    // ground gradient
+    const rg = ctx.createLinearGradient(0,0,0,H);
+    rg.addColorStop(0,'#0f222a');rg.addColorStop(1,'#061016');
+    ctx.fillStyle = rg; ctx.fillRect(roadLeft,0,roadRight-roadLeft,H);
+
+    // side rumble strips (simple)
+    ctx.fillStyle = '#1a2b32'; ctx.fillRect(roadLeft,0,8,H); ctx.fillRect(roadRight-8,0,8,H);
+
+    // center dashed with perspective scaling of dash height
+    const dashCount = 12;
+    for(let i=0;i<dashCount;i++){
+      const z = i * 200; // dashed segments placed at different z
+      const p = projectZ(z + (state.speed%200));
+      const cx = W/2;
+      const w = 12 * p.scale;
+      const h = 36 * p.scale;
+      ctx.fillStyle = 'rgba(255,255,255,'+ (0.9*p.scale) +')';
+      ctx.fillRect(cx - w/2, p.y - h/2, w, h);
+    }
+    ctx.restore();
+  }
+
+  // Render loop
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    // background subtle stars / gradient already in CSS, but we can add fog
+
+    // draw road
+    drawRoad();
+
+    // draw roadside objects (from far to near)
+    state.roadside.sort((a,b)=>b.z-a.z);
+    for(const obj of state.roadside){
+      const p = laneZToScreen(obj.side==='left'?0: state.laneCount-1, obj.z); // place near left or right lane
+      const s = p.scale;
+      const x = (obj.side==='left')? 80*s : W-80*s;
+      const y = p.y;
+      if(obj.type==='tree'){
+        // simple tree silhouette
+        ctx.save(); ctx.globalAlpha = Math.min(1,0.9*(0.7 + obj.z/2000));
+        ctx.translate(x,y);
+        ctx.scale(s*1.2,s*1.2);
+        ctx.fillStyle = '#063';
+        roundRect(-12,-40,24,40,8);ctx.fill();
+        ctx.fillStyle='#022';ctx.fillRect(-18,0,36,8);
+        ctx.restore();
+      } else {
+        // lamp post
+        ctx.save();ctx.globalAlpha=0.9;
+        ctx.translate(x,y);ctx.scale(s*1.0,s*1.0);
+        ctx.fillStyle='#444';ctx.fillRect(-4,-40,8,40);
+        ctx.beginPath();ctx.arc(0,-46,8,0,Math.PI*2);ctx.fillStyle='#ffe9a8';ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // draw powerups and enemies sorted far->near
+    const drawList = [...state.powerups, ...state.enemies].sort((a,b)=>b.z-a.z);
+    for(const item of drawList){
+      const p = laneZToScreen(item.lane, item.z);
+      const s = p.scale;
+      const x = p.x; const y = p.y;
+      const w = (item.w || 50) * s; const h = (item.h || 90) * s;
+      if(item.type === 'boost' || item.type === 'shield'){
+        // powerup orb
+        ctx.save();
+        ctx.translate(x,y);
+        ctx.globalAlpha = 0.95;
+        const grd = ctx.createRadialGradient(0,0,0,0,0,w*0.6);
+        if(item.type==='boost') { grd.addColorStop(0,'#fff'); grd.addColorStop(1,'#ffd166'); }
+        else { grd.addColorStop(0,'#fff'); grd.addColorStop(1,'#66d9ff'); }
+        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(0,0,w*0.5,0,Math.PI*2); ctx.fill();
+        ctx.restore();
+        // rotate a little
+        item.angle += 0.04;
+      } else {
+        // enemy - draw car scaled, with headlights if near
+        drawCarAt(x, y, w, h, item.color, false, {headlights: item.z < 160});
+      }
+    }
+
+    // draw player at bottom center
+    const pp = projectZ(40);
+    const playerScale = pp.scale;
+    const px = state.player.x;
+    const py = state.player.y;
+    drawCarAt(px, py, state.player.baseW * playerScale, state.player.baseH * playerScale, state.player.color, false, {headlights:true});
+
+    // draw particles
+    for(const p of state.particles){
+      ctx.globalAlpha = p.life/30;
+      ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 2 + (1 - p.life/30)*4, 0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1.0;
+
+    // HUD overlays (speed effect flash)
+    if(state.milestoneFlash>0){
+      ctx.fillStyle = 'rgba(255,255,255,'+ (state.milestoneFlash/20*0.12) +')'; ctx.fillRect(0,0,W,H);
+    }
+  }
+
+  // GAME LOOP
+  let last = performance.now();
+  function step(now){
+    const dt = now - last; last = now;
+    if(state.running && !state.paused){
+      // move enemies closer
+      for(let i=state.enemies.length-1;i>=0;i--){
+        const e = state.enemies[i];
+        e.z -= (state.speed + e.speed) * (dt/16.6);
+        // if passes camera -> remove and score
+        if(e.z < -20){ state.enemies.splice(i,1); state.score += 25; if(state.score % 100 ===0){ state.milestoneFlash = 20; createParticles(W/2, H/2, '#fff', 50, 200);} }
+      }
+      // move powerups
+      for(let i=state.powerups.length-1;i>=0;i--){ const p=state.powerups[i]; p.z -= state.speed*(dt/16.6); if(p.z < -20) state.powerups.splice(i,1); }
+
+      // roadside objects move
+      for(let i=state.roadside.length-1;i>=0;i--){ const r=state.roadside[i]; r.z -= state.speed*(dt/16.6); if(r.z < -40) state.roadside.splice(i,1); }
+
+      // spawn logic
+      state.spawnTimer += dt;
+      if(state.spawnTimer > state.spawnInterval){ state.spawnTimer = 0; // spawn either enemy or powerup
+        if(Math.random() < 0.75) spawnEnemy(); else spawnPowerup();
+        if(Math.random() < 0.6) spawnRoadside();
+      }
+
+      // collisions
+      for(let i=state.enemies.length-1;i>=0;i--){ const e=state.enemies[i]; if(collideEnemyPlayer(e)){
+        if(state.player.shield){ // consume shield
+          state.player.shield=false; shieldStateEl.textContent='No'; createParticles(state.player.x, state.player.y, '#66d9ff', 28, 60); state.enemies.splice(i,1); state.score += 12; break;
+        } else {
+          // crash -> end
+          createParticles(state.player.x, state.player.y, '#ff6b6b', 80, 120);
+          state.running=false; messageShow('Crashed!', 'Score: '+Math.floor(state.score));
+        }
+      }}
+
+      // powerup overlap pickup
+      for(let i=state.powerups.length-1;i>=0;i--){ const p=state.powerups[i]; const pp = laneZToScreen(p.lane,p.z); if(Math.abs(pp.x - state.player.x) < 30 && Math.abs(pp.y - state.player.y) < 40){ if(p.type==='boost'){ // temporary speed boost
+            state.speed += 6; setTimeout(()=>{ state.speed -= 6; }, 2000); createParticles(state.player.x, state.player.y, '#ffd166', 40, 80);
+          } else { state.player.shield=true; shieldStateEl.textContent='Yes'; createParticles(state.player.x, state.player.y, '#66d9ff', 40, 100); }
+          state.powerups.splice(i,1); state.score += 18; }
+      }
+
+      // update particles
+      for(let i=state.particles.length-1;i>=0;i--){ const p=state.particles[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.08; p.life -= (dt/16.6); if(p.life <= 0) state.particles.splice(i,1); }
+
+      // milestone flash decay
+      if(state.milestoneFlash>0) state.milestoneFlash -= dt/16.6;
+
+      // handle automatic lane smoothing (player.x moves toward targetX each frame)
+      state.player.x += (state.player.targetX - state.player.x) * 0.22;
+
+      // slowly increase base difficulty
+      state.spawnInterval = Math.max(450, 900 - Math.floor(state.score/50)*40);
+      state.speed = 6 + Math.min(12, Math.floor(state.score/120));
+      state.t0 = now;
+    }
+
+    render();
+    requestAnimationFrame(step);
+  }
+
+  // messaging overlay
+  function messageShow(title, body){
+    document.getElementById('msgTitle').textContent = title;
+    document.getElementById('msgBody').textContent = body;
+    message.style.display='block'; overlay.style.pointerEvents='auto';
+    resumeBtn.style.display = state.running? 'inline-block':'none'; startBtn.style.display = state.running? 'none':'inline-block';
+  }
+  function messageHide(){ message.style.display='none'; overlay.style.pointerEvents='none'; }
+
+  // controls map
+  const keys = {left:false,right:false};
+  window.addEventListener('keydown',(e)=>{
+    if(e.code === 'ArrowLeft' || e.code === 'KeyA'){ keys.left=true; movePlayerLeft(); }
+    if(e.code === 'ArrowRight' || e.code === 'KeyD'){ keys.right=true; movePlayerRight(); }
+    if(e.code === 'Space'){ if(!state.running){ startGame(); } else { state.paused = !state.paused; messageShow('Paused','Game is paused.'); if(!state.paused) messageHide(); } }
+    if(e.code === 'KeyP'){ state.paused = !state.paused; if(state.paused) messageShow('Paused','Game is paused.'); else messageHide(); }
+  });
+  window.addEventListener('keyup',(e)=>{ if(e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left=false; if(e.code === 'ArrowRight' || e.code === 'KeyD') keys.right=false; });
+
+  // mobile pads
+  padLeft.addEventListener('pointerdown', ()=>{ movePlayerLeft(); });
+  padRight.addEventListener('pointerdown', ()=>{ movePlayerRight(); });
+
+  function movePlayerLeft(){ state.player.lane = Math.max(0, state.player.lane - 1); state.player.targetX = state.lanes[state.player.lane]; }
+  function movePlayerRight(){ state.player.lane = Math.min(state.laneCount-1, state.player.lane + 1); state.player.targetX = state.lanes[state.player.lane]; }
+
+  // init player positions
+  state.player.x = state.lanes[state.player.lane];
+  state.player.targetX = state.player.x;
+
+  // start / pause / reset
+  function startGame(){ state.running=true; state.paused=false; state.score=0; state.enemies=[]; state.powerups=[]; state.roadside=[]; state.particles=[]; messageHide(); state.t0 = performance.now(); }
+  function resetGame(){ state.running=false; state.paused=false; state.score=0; state.enemies=[]; state.powerups=[]; state.roadside=[]; state.particles=[]; messageShow('Ready?','Press Start to race.'); }
+
+  startBtn.addEventListener('click', ()=>{ startGame(); });
+  resumeBtn.addEventListener('click', ()=>{ state.paused=false; messageHide(); });
+  pauseBtn.addEventListener('click', ()=>{ state.paused = !state.paused; if(state.paused) messageShow('Paused','Game is paused.'); else messageHide(); });
+  resetBtn.addEventListener('click', ()=>{ resetGame(); });
+
+  // touch-friendly tap anywhere for left/right (split)
+  canvas.addEventListener('pointerdown', (e)=>{
+    const rect = canvas.getBoundingClientRect(); const x = e.clientX - rect.left; if(x < W/2) movePlayerLeft(); else movePlayerRight();
+  });
+
+  // keep spawn of roadside/powerups ongoing even when not running to look lively
+  setInterval(()=>{ if(Math.random()<0.9) spawnRoadside(); if(Math.random()<0.08) spawnPowerup(); }, 1000);
+
+  // scoring tick update
+  setInterval(()=>{ if(state.running && !state.paused){ state.score += 1; scoreEl.textContent = Math.floor(state.score); speedEl.textContent = Math.floor(state.speed); if(state.score > state.best){ state.best = Math.floor(state.score); localStorage.setItem('p3d-best', state.best); bestEl.textContent = state.best; } } }, 400);
+
+  // initial overlay
+  messageShow('Ready?','Use A/D or ←/→ to steer. Press Start (or Space).');
+
+  // kick loop
+  requestAnimationFrame(step);
+
+  // small helper to create visual particles quickly
+  function createParticles(cx,cy,color,count,spread){ for(let i=0;i<count;i++){ state.particles.push({x:cx + (Math.random()-0.5)*spread, y:cy + (Math.random()-0.5)*spread, vx:(Math.random()-0.5)*2, vy:(Math.random()-0.5)*2 -1, life:20 + Math.random()*20, color}); } }
+
+  // expose debug when needed
+  window.__p3d = { state, spawnEnemy, spawnPowerup, spawnRoadside };
+  </script>
+</body>
+</html>

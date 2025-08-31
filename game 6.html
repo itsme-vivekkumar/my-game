@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shooting Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+        #gameContainer {
+            display: flex;
+        }
+        #gameCanvas {
+            border: 1px solid white;
+            position: relative;
+            background-color: #222;
+            width: 800px;
+            height: 600px;
+        }
+        #rules {
+            margin-left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            width: 250px; /* Set a fixed width for the rules section */
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="rules">
+            <h2>Game Rules</h2>
+            <p>Shoot the enemies to score points.</p>
+            <p>You have 1 minute to score as much as you can.</p>
+            <p>Enemies have health, hit them multiple times.</p>
+            <p>Press SPACE to shoot.</p>
+            <p>The game will start in 5 seconds...</p>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gun = { x: 375, y: 500, width: 50, height: 50 };
+        const enemies = [];
+        let score = 0;
+        let timeLeft = 60;
+        let gameInterval;
+        const enemyHealth = 0;
+
+        // Function to create enemies
+        function createEnemies() {
+            for (let i = 0; i < 5; i++) {
+                const enemy = {
+                    x: Math.random() * (canvas.width - 50),
+                    y: Math.random() * (canvas.height - 50),
+                    health: enemyHealth
+                };
+                enemies.push(enemy);
+            }
+        }
+
+        // Function to draw the gun
+        function drawGun() {
+            const gunImage = new Image();
+            gunImage.src = 'gun.png'; // Replace with your gun image path
+            ctx.drawImage(gunImage, gun.x, gun.y, gun.width, gun.height);
+        }
+
+        // Function to draw enemies
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                if (enemy.health > 0) {
+                    const enemyImage = new Image();
+                    enemyImage.src = 'enemy.png'; // Replace with your enemy image path
+                    ctx.drawImage(enemyImage, enemy.x, enemy.y, 50, 50);
+                }
+            });
+        }
+
+        // Function to update the game
+        function updateGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGun();
+            drawEnemies();
+            ctx.fillStyle = 'white';
+            ctx.fillText(`Score: ${score}`, 10, 20);
+            ctx.fillText(`Time Left: ${timeLeft}`, 10, 40);
+            if (timeLeft <= 0) {
+                clearInterval(gameInterval);
+                alert(`Game Over! Your score: ${score}`);
+                localStorage.setItem('score', score); // Save score
+                location.reload(); // Reload the game
+            }
+        }
+
+        // Function to shoot
+        function shoot() {
+            enemies.forEach(enemy => {
+                if (enemy.health > 2 && 
+                    gun.x < enemy.x + 50 && 
+                    gun.x + 50 > enemy.x && 
+                    gun.y < enemy.y + 50 && 
+                    gun.y + 50 > enemy.y) {
+                    enemy.health--;
+                    if (enemy.health === 0) {
+                        score++;
+                    }
+                }
+            });
+        }
+
+        // Start the game
+        function startGame() {
+            createEnemies();
+            document.getElementById('rules').style.display = 'none'; // Hide rules
+            gameInterval = setInterval(() => {
+                timeLeft--;
+                updateGame();
+            }, 1000);
+        }
+
+        // Display rules and start the game after 5 seconds
+        setTimeout(startGame, 5000);
+
+        // Event listeners
+        document.addEventListener('keydown', (event) => {
+            if (event.key === ' ') {
+                shoot();
+            }
+        });
+    </script>
+</body>
+</html>

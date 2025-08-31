@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SOS — Tap for Help</title>
+  <!-- No JavaScript. Single HTML file. Works offline as a bookmark. -->
+  <meta name="theme-color" content="#b00020" />
+  <meta name="description" content="One‑tap SOS: call, SMS, and email your emergency contacts." />
+  <style>
+    /* kept minimal; still a single HTML file */
+    :root { --bg:#0b0b0f; --fg:#ffffff; --muted:#c8c8d0; --accent:#ff4757; --accent2:#1e90ff; }
+    html,body{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--fg);display:flex;align-items:center;justify-content:center}
+    .wrap{width:min(780px,92vw);text-align:center;padding:28px}
+    h1{font-size:clamp(28px,5vw,40px);margin:6px 0 10px}
+    p{margin:0 0 18px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media (min-width:640px){.grid{grid-template-columns:1fr 1fr}}
+    a.btn{display:flex;align-items:center;justify-content:center;text-decoration:none;border-radius:18px;padding:18px 16px;border:2px solid rgba(255,255,255,.15);backdrop-filter:saturate(140%) blur(2px)}
+    a.btn:active{transform:scale(.98)}
+    .big{grid-column:1/-1;padding:26px 18px;font-weight:700;font-size:clamp(18px,3.6vw,24px);background:linear-gradient(180deg,#ff6b81,#b00020);color:white;border:none}
+    .call{background:linear-gradient(180deg,#ff6b6b,#c81d25);color:#fff}
+    .police{background:linear-gradient(180deg,#5dade2,#2e86c1);color:#fff}
+    .ambulance{background:linear-gradient(180deg,#58d68d,#1e8449);color:#fff}
+    .sms{background:linear-gradient(180deg,#f8c471,#d68910);color:#1b1b1b}
+    .mail{background:linear-gradient(180deg,#d7dbdd,#909497);color:#111}
+    small{display:block;margin-top:18px;color:var(--muted)}
+    .ice{margin-top:22px;text-align:left;opacity:.9}
+    .ice h2{font-size:18px;margin:0 0 8px}
+    .ice ul{margin:0;padding-left:20px}
+    .ice li{margin:4px 0}
+    .tip{margin-top:20px;font-size:14px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <main class="wrap" role="main">
+    <h1>🚨 SOS — Tap for Help</h1>
+    <p>Edit this file once with <strong>your own numbers/emails</strong>, save it to your phone, and add it to your home screen.</p>
+
+    <div class="grid" role="navigation" aria-label="Emergency actions">
+      <!-- INDIA universal emergency number -->
+      <a class="btn big" href="tel:112" aria-label="Call 112 universal emergency number">📞 Call 112 (All‑in‑One)</a>
+
+      <!-- You can change these depending on your country/region -->
+      <a class="btn call" href="tel:100" aria-label="Call Police 100">🚓 Police 100</a>
+      <a class="btn ambulance" href="tel:108" aria-label="Call Ambulance 108">🚑 Ambulance 108</a>
+
+      <!-- SMS prefilled to your ICE contact; replace the number and message as needed -->
+      <a class="btn sms" href="sms:+911234567890?&body=SOS%20I%20need%20help.%20Please%20call%20me%20ASAP." aria-label="Send SOS SMS to emergency contact">📱 SMS My Emergency Contact</a>
+
+      <!-- Email fallback -->
+      <a class="btn mail" href="mailto:ice@example.com?subject=SOS&body=I%20need%20help.%20Please%20call%20me%20ASAP." aria-label="Send SOS email">✉️ Email My Emergency Contact</a>
+    </div>
+
+    <section class="ice" aria-labelledby="ice-title">
+      <h2 id="ice-title">In Case of Emergency (ICE)</h2>
+      <ul>
+        <li><strong>Name:</strong> Your Name</li>
+        <li><strong>Primary Contact:</strong> +91 12345 67890 (Mother)</li>
+        <li><strong>Secondary Contact:</strong> +91 98765 43210 (Father)</li>
+        <li><strong>Blood Group:</strong> O+</li>
+        <li><strong>Allergies/Notes:</strong> —</li>
+      </ul>
+    </section>
+
+    <p class="tip">Tip: On Android Chrome, open this page → ⋮ menu → <em>Add to Home screen</em> for quick one‑tap access. No JavaScript used.</p>
+    <small>⚠️ Your phone must have network/SIM for calls and SMS. Replace placeholders with your real contacts.</small>
+  </main>
+</body>
+</html>
