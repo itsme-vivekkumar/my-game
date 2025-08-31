@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<!-- saved from url=(0090)file:///C:/Users/vivek/AppData/Local/Microsoft/Windows/INetCache/IE/SL5N47RQ/akash[1].html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Games — Launcher</title>
+  <meta name="description" content="Launcher for local HTML games. Put this index.html in the same folder as your game files.">
+  <style>
+    :root{
+      --bg: #0f1724; --card: #0b1220; --accent: #3ddc97; --muted: #9aa6b2;
+      --gap: 14px; --radius: 12px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+      background: linear-gradient(180deg,#071022,#08111a);
+      color: #e6eef6;
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+      padding:20px;
+      align-items:center;
+    }
+
+    header{width:100%;max-width:1200px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    h1{font-size:1.15rem;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:0.95rem}
+
+    .grid{width:100%;max-width:1200px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--gap)}
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:var(--radius);
+      padding:12px;
+      border:1px solid rgba(255,255,255,0.04);
+      box-shadow:0 8px 30px rgba(2,6,12,0.6);
+      display:flex;flex-direction:column;gap:10px;
+      min-height:120px;
+    }
+
+    .card h3{margin:4px 0 0;font-size:1rem}
+    .card p{margin:0;color:var(--muted);font-size:0.9rem}
+
+    .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btn{
+      background:transparent;color:var(--accent);border:1px solid rgba(61,220,151,0.15);
+      padding:8px 10px;border-radius:10px;cursor:pointer;font-weight:600;font-size:0.9rem;
+      backdrop-filter: blur(6px);
+    }
+    .btn.primary{background:linear-gradient(90deg,#2de0a0,#21b58a);color:#031612;border:none}
+    .btn.small{padding:6px 8px;font-size:0.85rem;border-radius:8px}
+
+    /* iframe stage */
+    .stage{width:100%;max-width:1200px;height:640px;background:var(--card);border-radius:12px;border:1px solid rgba(255,255,255,0.03);overflow:hidden;display:grid;grid-template-rows:44px 1fr}
+    .stage .top{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.02)}
+    .stage .top .meta{display:flex;gap:12px;align-items:center}
+    .stage iframe{width:100%;height:100%;border:0;display:block;background:white}
+
+    /* small screen adjustments */
+    @media (max-width:820px){
+      .stage{height:56vh;min-height:420px}
+    }
+
+    footer{width:100%;max-width:1200px;color:var(--muted);font-size:0.9rem;text-align:center;padding:8px}
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>My Games</h1>
+      <p class="lead">Click a game card to load it below. If a game doesn’t load inside the launcher, use “Open in new tab”.</p>
+    </div>
+    <div class="controls" aria-hidden="false">
+      <button id="openFullscreen" class="btn small">Fullscreen Stage</button>
+      <button id="popOut" class="btn small">Pop Out (New Tab)</button>
+      <button id="refreshIframe" class="btn small">Reload Game</button>
+    </div>
+  </header>
+
+  <main class="grid" id="gamesGrid" aria-live="polite">
+    <!-- Each card targets a local file (must be in same folder as index.html) -->
+    <article class="card" data-src="App.6.html">
+      <h3>Flappy Bird — Modern</h3>
+      <p>Tap / Space to play. Canvas game embedded from <code>App.6.html</code>.</p>
+      <div style="margin-top:auto;display:flex;gap:8px">
+        <button class="btn primary loadBtn">Play in stage</button>
+        <button class="btn small openBtn">Open in new tab</button>
+      </div>
+    </article>
+
+    <article class="card" data-src="Ping Pong.html">
+      <h3>Ping Pong</h3>
+      <p>2-player or single player canvas pong. File: <code>Ping Pong.html</code>.</p>
+      <div style="margin-top:auto;display:flex;gap:8px">
+        <button class="btn primary loadBtn">Play in stage</button>
+        <button class="btn small openBtn">Open in new tab</button>
+      </div>
+    </article>
+
+    <article class="card" data-src="Car game beta.html">
+      <h3>Pseudo-3D Racer</h3>
+      <p>Single-file racing experience. File: <code>Car game beta.html</code>.</p>
+      <div style="margin-top:auto;display:flex;gap:8px">
+        <button class="btn primary loadBtn">Play in stage</button>
+        <button class="btn small openBtn">Open in new tab</button>
+      </div>
+    </article>
+
+    <article class="card" data-src="Space.html">
+      <h3>Asteroids</h3>
+      <p>Classic asteroid shooter. File: <code>Space.html</code>.</p>
+      <div style="margin-top:auto;display:flex;gap:8px">
+        <button class="btn primary loadBtn">Play in stage</button>
+        <button class="btn small openBtn">Open in new tab</button>
+      </div>
+    </article>
+
+    <article class="card" data-src="App1.html">
+      <h3>Shooting Game</h3>
+      <p>Shooting / score game. File: <code>App1.html</code>.</p>
+      <div style="margin-top:auto;display:flex;gap:8px">
+        <button class="btn primary loadBtn">Play in stage</button>
+        <button class="btn small openBtn">Open in new tab</button>
+      </div>
+    </article>
+
+    <article class="card" data-src="App1-1.html">
+      <h3>Guess the Number</h3>
+      <p>Simple number guessing game. File: <code>App1-1.html</code>.</p>
+      <div style="margin-top:auto;display:flex;gap:8px">
+        <button class="btn primary loadBtn">Play in stage</button>
+        <button class="btn small openBtn">Open in new tab</button>
+      </div>
+    </article>
+
+    <article class="card" data-src="app-4.html">
+      <h3>Mental Health Tips</h3>
+      <p>Informational / small app. File: <code>app-4.html</code>.</p>
+      <div style="margin-top:auto;display:flex;gap:8px">
+        <button class="btn primary loadBtn">Open in stage</button>
+        <button class="btn small openBtn">Open in new tab</button>
+      </div>
+    </article>
+
+    <article class="card" data-src="App-3.html">
+      <h3>SOS — Tap for Help</h3>
+      <p>Emergency quick actions page. File: <code>App-3.html</code>.</p>
+      <div style="margin-top:auto;display:flex;gap:8px">
+        <button class="btn primary loadBtn">Open in stage</button>
+        <button class="btn small openBtn">Open in new tab</button>
+      </div>
+    </article>
+  </main>
+
+  <section class="stage" id="stage" aria-label="Game stage">
+    <div class="top">
+      <div class="meta">
+        <strong id="stageTitle">App.6.html</strong>
+        <span style="color:var(--muted);font-size:0.9rem" id="stageNote">Browser blocked access to embedded file. Use "Open in new tab".</span>
+      </div>
+      <div>
+        <button id="openInNewTab" class="btn small">Open in new tab</button>
+        <button id="reloadBtn" class="btn small">Reload</button>
+      </div>
+    </div>
+    <div style="background:#000">
+      <iframe id="gameFrame" src="./My Games — Launcher_files/App.6.html" allow="fullscreen; clipboard-read; clipboard-write" sandbox="allow-same-origin allow-scripts allow-forms allow-pointer-lock allow-popups"></iframe>
+    </div>
+  </section>
+
+  <footer>
+    If an embedded game doesn't run due to browser restrictions, use "Open in new tab" — it will open the raw file directly. Keep all game files and this index.html in the same folder.
+  </footer>
+
+<script>
+  (function(){
+    const grid = document.getElementById('gamesGrid');
+    const stageTitle = document.getElementById('stageTitle');
+    const stageNote = document.getElementById('stageNote');
+    const iframe = document.getElementById('gameFrame');
+    const openInNewTabBtn = document.getElementById('openInNewTab');
+    const reloadBtn = document.getElementById('reloadBtn');
+    const openFullscreen = document.getElementById('openFullscreen');
+    const popOut = document.getElementById('popOut');
+    const refreshIframe = document.getElementById('refreshIframe');
+
+    let currentSrc = '';
+
+    // delegate click for load & open
+    grid.addEventListener('click', (e)=>{
+      const loadBtn = e.target.closest('.loadBtn');
+      const openBtn = e.target.closest('.openBtn');
+      const card = e.target.closest('.card');
+      if(loadBtn || openBtn){
+        const src = card.getAttribute('data-src');
+        if(openBtn) {
+          window.open(src, '_blank');
+        } else {
+          loadGame(src);
+        }
+      }
+    });
+
+    function loadGame(src){
+      currentSrc = src;
+      iframe.src = src;
+      stageTitle.textContent = src;
+      stageNote.textContent = 'If game is not interactive, try "Open in new tab"';
+      // focus iframe for keyboard controls where supported
+      setTimeout(()=>{ try{ iframe.contentWindow && iframe.contentWindow.focus(); }catch(e){} }, 400);
+    }
+
+    openInNewTabBtn.addEventListener('click', ()=> {
+      if(currentSrc) window.open(currentSrc, '_blank');
+      else alert('Choose a game first.');
+    });
+
+    reloadBtn.addEventListener('click', ()=> {
+      if(iframe.src) iframe.contentWindow.location.reload();
+    });
+
+    // fullscreen the stage container
+    openFullscreen.addEventListener('click', async () => {
+      const el = document.getElementById('stage');
+      if(el.requestFullscreen) await el.requestFullscreen();
+      else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    });
+
+    popOut.addEventListener('click', ()=> {
+      if(currentSrc) window.open(currentSrc, '_blank');
+      else alert('Choose a game first.');
+    });
+
+    refreshIframe.addEventListener('click', ()=> {
+      if(iframe.src) iframe.src = iframe.src;
+    });
+
+    // keyboard: ESC clears loaded game
+    window.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape') {
+        iframe.src=''; currentSrc=''; stageTitle.textContent='No game loaded'; stageNote.textContent='Select a game to play';
+      }
+    });
+
+    // load first card automatically if present
+    const first = grid.querySelector('.card');
+    if(first) loadGame(first.getAttribute('data-src'));
+
+    // friendly message when iframe fails (some browsers block local iframe for file://)
+    iframe.addEventListener('load', ()=>{
+      try{
+        // try cross-origin access; if blocked, suggest opening in new tab
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        // if a very minimal page is loaded and contains nothing, display hint
+        if(!doc || doc.body.innerHTML.trim().length === 0) {
+          stageNote.textContent = 'Embedded content looks empty — try "Open in new tab".';
+        } else {
+          stageNote.textContent = 'Loaded — use game controls in the iframe or pop out if needed.';
+        }
+      }catch(err){
+        stageNote.textContent = 'Browser blocked access to embedded file. Use "Open in new tab".';
+      }
+    });
+  })();
+</script>
+
+
+</body></html>
